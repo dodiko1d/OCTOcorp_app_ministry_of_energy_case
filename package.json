@@ -14,6 +14,7 @@
     "axios": "^0.21.0",
     "babel-polyfill": "^6.26.0",
     "bootstrap": "^4.4.1",
+    "chart.js": "^2.9.4",
     "cssnano": "^4.1.10",
     "datejs": "^1.0.0-rc3",
     "html-webpack-plugin": "^4.3.0",
@@ -24,7 +25,9 @@
     "sass-loader": "^10.0.3",
     "style-loader": "^2.0.0",
     "vue": "^2.5.11",
+    "vue-chartjs": "^3.5.1",
     "vue-router": "^3.2.0",
+    "vue-slider-component": "^3.2.11",
     "youtube-iframe": "^1.0.3"
   },
   "devDependencies": {

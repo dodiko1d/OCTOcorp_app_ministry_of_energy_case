@@ -1,20 +1,65 @@
 <template lang="pug">
   div(id="app")
-    div(v-if="!toggleStatus")
-      router-view
+    .app__loading-wrapper(v-if="graphData === null || data === null")
+      .spinner-grow(v-for="_ in [1, 2, 3]" style="width: 3rem; height: 3rem;" role="status")
+        span.sr-only Loading...
+    .app__wrapper(v-else)
+      Graph( height="calc(100vh)" :chart-data="datacollection" :yTicks="{min: 0, max: 10000}")
+      VueSlider(
+        v-model="sliderValues"
+        :enableCross="false"
+        :max="data.length"
+        @dragging="fillData()"
+        )
 </template>
 
 <script>
-import fontSizeNormalization from "./assets/js/fontSizeNormalization";
-import './assets/sass/vue-bootstrap.sass';
 import { mobileCheck } from "@/assets/js/mobileDetection";
+import Graph from "@/vue-components/Graph";
+import VueSlider from 'vue-slider-component'
+import 'vue-slider-component/theme/antd.css'
 
 
 export default {
   name: 'app',
+  components: {Graph, VueSlider},
   data () {
     return {
       toggleStatus: false,
+      data: null,
+      datacollection: {},
+      sliderValues: [0, 100],
+    }
+  },
+  methods: {
+    fillData () {
+      this.datacollection = {
+        datasets: [
+          {
+            label: 'Data One',
+            backgroundColor: '#f87979',
+            data: this.graphData,
+          }
+        ],
+      }
+    },
+  },
+  computed: {
+    graphData: {
+      get: function () {
+        if (this.data !== null) {
+          let newData = [];
+          for(let i = this.sliderValues[0]; i < this.sliderValues[1]; i += Math.floor((this.sliderValues[1] - this.sliderValues[0]) / 5)) {
+            let dotValue = 0;
+            for (let j = 0; j <= Math.floor((this.sliderValues[1] - this.sliderValues[0]) / 5); j++) { dotValue += this.data[i + j][1] }
+            newData.push(Math.floor(dotValue / (this.sliderValues[1] - this.sliderValues[0]) * 5))
+          }
+          return newData
+        } else { return {} }
+      },
+      set: function (newValue) {
+        return newValue;
+      }
     }
   },
   mounted() {
@@ -23,8 +68,18 @@ export default {
     })
     mobileCheck();
     if (window.mobileCheck()) {
+
       document.body.setAttribute('mobile-device', '');
     }
+    this.$axios
+        .get('http://127.0.0.1:8000/city/get-city-data/1')
+        .then(response => {
+          this.data = response.data;
+          this.data = this.data
+              .map(element => [new Date(element[0]), element[1]])
+          // this.sliderValues = [0, length.data.length]
+        })
+    this.fillData()
   }
 }
 </script>
@@ -33,23 +88,30 @@ export default {
   /* Different browsers preset styles reset. */
   @import 'assets/sass/variables'
   @import 'assets/sass/style-reset'
-  html
-    overflow-y: scroll
 
   .router-view
     @extend .router-view-collapsed!optional
 
-  *::-webkit-scrollbar-track
-    transition: 2s
-    background-color: $company-black
+  #app
+    height: 100vh
 
-  *::-webkit-scrollbar
-    transition: 2s
-    width: 12px
-    background-color: $company-black
+  .center
+    display: flex
+    justify-content: center
+    align-items: center
+    width: 100%
+    height: 100%
 
-  *::-webkit-scrollbar-thumb
-    transition: 2s
-    background-color: #ffffff
+  .app__loading-wrapper
+    @extend .center
 
+
+  .spinner-grow
+    margin: 0 2em
+    &:nth-of-type(1)
+      color: $company-yellow
+    &:nth-of-type(2)
+      color: $company-black
+    &:nth-of-type(3)
+      color: $company-red
 </style>
