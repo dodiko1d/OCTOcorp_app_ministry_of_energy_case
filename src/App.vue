@@ -9,7 +9,7 @@
         v-model="sliderValues"
         :enableCross="false"
         :max="data.length"
-        @dragging="fillData()"
+        @drag-end="fillData()"
         )
 </template>
 
@@ -29,10 +29,12 @@ export default {
       data: null,
       datacollection: {},
       sliderValues: [0, 100],
+      graphData: {},
     }
   },
   methods: {
     fillData () {
+      this.changeGraphData()
       this.datacollection = {
         datasets: [
           {
@@ -43,23 +45,16 @@ export default {
         ],
       }
     },
-  },
-  computed: {
-    graphData: {
-      get: function () {
-        if (this.data !== null) {
-          let newData = [];
-          for(let i = this.sliderValues[0]; i < this.sliderValues[1]; i += Math.floor((this.sliderValues[1] - this.sliderValues[0]) / 5)) {
-            let dotValue = 0;
-            for (let j = 0; j <= Math.floor((this.sliderValues[1] - this.sliderValues[0]) / 5); j++) { dotValue += this.data[i + j][1] }
-            newData.push(Math.floor(dotValue / (this.sliderValues[1] - this.sliderValues[0]) * 5))
-          }
-          return newData
-        } else { return {} }
-      },
-      set: function (newValue) {
-        return newValue;
-      }
+    changeGraphData () {
+      if (this.data !== null) {
+        let newData = [];
+        for(let i = this.sliderValues[0]; i < this.sliderValues[1]; i += Math.floor((this.sliderValues[1] - this.sliderValues[0]) / 30)) {
+          let dotValue = 0;
+          for (let j = 0; j < Math.floor((this.sliderValues[1] - this.sliderValues[0]) / 30); j++) { dotValue += this.data[i + j][1] }
+          newData.push(Math.floor(dotValue / (this.sliderValues[1] - this.sliderValues[0]) * 30))
+        }
+        this.graphData = newData
+      } else { this.graphData = {} }
     }
   },
   mounted() {
