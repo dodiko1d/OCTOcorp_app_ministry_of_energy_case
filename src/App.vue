@@ -7,10 +7,12 @@
       Graph( height="calc(100vh)" :chart-data="datacollection" :yTicks="{min: 0, max: 10000}")
       VueSlider(
         v-model="sliderValues"
-        :enableCross="false"
         :max="data.length"
         @drag-end="fillData()"
+        :min-range="dotsNumber"
         )
+
+    input(v-model="dotsNumber" type="number" @change="fillData" :min="0" :max='this.sliderValues[1] - this.sliderValues[0]')
 </template>
 
 <script>
@@ -30,6 +32,7 @@ export default {
       datacollection: {},
       sliderValues: [0, 100],
       graphData: {},
+      dotsNumber: 30,
     }
   },
   methods: {
@@ -48,10 +51,13 @@ export default {
     changeGraphData () {
       if (this.data !== null) {
         let newData = [];
-        for(let i = this.sliderValues[0]; i < this.sliderValues[1]; i += Math.floor((this.sliderValues[1] - this.sliderValues[0]) / 30)) {
+        if (this.dotsNumber > this.sliderValues[1] - this.sliderValues[0]) { return }
+        for(let i = this.sliderValues[0]; i < this.sliderValues[1]; i += Math.floor((this.sliderValues[1] - this.sliderValues[0]) / this.dotsNumber)) {
+          // let dotValue = this.data[i][1] < 10 ? Math.log(4 / this.data[i][1]): Math.PI / 2 * this.data[i][1] / Math.log(4 * this.data[i][1])
+          // newData.push(dotValue)
           let dotValue = 0;
-          for (let j = 0; j < Math.floor((this.sliderValues[1] - this.sliderValues[0]) / 30); j++) { dotValue += this.data[i + j][1] }
-          newData.push(Math.floor(dotValue / (this.sliderValues[1] - this.sliderValues[0]) * 30))
+          for (let j = 0; j < Math.floor((this.sliderValues[1] - this.sliderValues[0]) / this.dotsNumber); j++) { dotValue += this.data[i + j][1] }
+          newData.push(Math.floor(dotValue / (this.sliderValues[1] - this.sliderValues[0]) * this.dotsNumber))
         }
         this.graphData = newData
       } else { this.graphData = {} }
