@@ -1,6 +1,6 @@
 <template lang="pug">
   div(id="app")
-    .app__loading-wrapper(v-if="graphData === null || data === null")
+    .app__loading-wrapper(v-if="data === null")
       .spinner-grow(v-for="_ in [1, 2, 3]" style="width: 3rem; height: 3rem;" role="status")
         span.sr-only Loading...
     .app__wrapper(v-else)
@@ -9,17 +9,21 @@
         v-model="sliderValues"
         :max="data.length"
         @drag-end="fillData()"
-        :min-range="dotsNumber"
+        :min-range="pointsNumber"
+        :dotSize="30"
+        :fixed="!sliderAvailable"
+        :dotOptions="{'disabled': !sliderAvailable}"
         )
 
-    input(v-model="dotsNumber" type="number" @change="fillData" :min="0" :max='this.sliderValues[1] - this.sliderValues[0]')
+    input(v-model="pointsNumber" type="number" @change="fillData" :min="0" :max='this.sliderValues[1] - this.sliderValues[0]')
 </template>
 
 <script>
 import { mobileCheck } from "@/assets/js/mobileDetection";
 import Graph from "@/vue-components/Graph";
-import VueSlider from 'vue-slider-component'
-import 'vue-slider-component/theme/antd.css'
+import VueSlider from 'vue-slider-component';
+import 'vue-slider-component/theme/antd.css';
+import { pythonWrapper } from "@/assets/js/python";
 
 
 export default {
@@ -31,36 +35,79 @@ export default {
       data: null,
       datacollection: {},
       sliderValues: [0, 100],
-      graphData: {},
-      dotsNumber: 30,
+      graphData: null,
+      pointsNumber: 30,
+      currentCityId: 1,
+      sliderAvailable: true,
+      numpyLoadedStatus: false,
+      currentCity: 'Новосибирск',
     }
   },
   methods: {
     fillData () {
-      this.changeGraphData()
+      // if (this.graphData === null) { this.graphDataInitialization() } else {this.changeGraphData()}
+      this.graphDataInitialization()
       this.datacollection = {
         datasets: [
           {
-            label: 'Data One',
+            label: `График прогнозируемого энергопотребления в г. ${this.currentCity}`,
             backgroundColor: '#f87979',
             data: this.graphData,
           }
         ],
       }
     },
-    changeGraphData () {
+    // changeGraphDataPy (pyodide) {
+    //   window.graphData = this.graphData;
+    //   window.group = Math.floor(this.data.slice(this.sliderValues[0], this.sliderValues[1]).length / this.pointsNumber);
+    //   window.pointsNumber = this.pointsNumber;
+    //   window.data = this.data.map(element => element[1]);
+    //   window.sliderLeftCoordinate = this.sliderValues[0]
+    //   console.log(pyodide.runPython(`
+    //     import numpy as np
+    //     import js
+    //     data = np.array(js.window.data[js.window.sliderLeftCoordinate:js.window.sliderLeftCoordinate + js.window.pointsNumber * js.window.group])
+    //     graphData = np.array(js.window.data[:js.window.pointsNumber * js.window.group]).reshape(-1, js.window.group).mean(axis=1)
+    //   `))
+    //   this.graphData = pyodide.globals.graphData;
+    //   console.log('this.graphData after')
+    //   console.log(this.graphData)
+    //   window.graphDate = null;
+    //   window.group = null;
+    //   window.pointsNumber = null;
+    // },
+    // changeGraphData () {
+    //   this.sliderAvailable = false;
+    //   if (this.data !== null) {
+    //     try {
+    //       pythonWrapper(this.changeGraphDataPy, !this.numpyLoadedStatus);
+    //       this.numpyLoadedStatus = true;
+    //     } catch(error) {
+    //       console.log(error.response)
+    //     }
+    //   } else { this.graphData = {} }
+    //   this.sliderAvailable = true;
+    // },
+    graphDataInitialization () {
+      this.sliderAvailable = false;
       if (this.data !== null) {
-        let newData = [];
-        if (this.dotsNumber > this.sliderValues[1] - this.sliderValues[0]) { return }
-        for(let i = this.sliderValues[0]; i < this.sliderValues[1]; i += Math.floor((this.sliderValues[1] - this.sliderValues[0]) / this.dotsNumber)) {
-          // let dotValue = this.data[i][1] < 10 ? Math.log(4 / this.data[i][1]): Math.PI / 2 * this.data[i][1] / Math.log(4 * this.data[i][1])
-          // newData.push(dotValue)
-          let dotValue = 0;
-          for (let j = 0; j < Math.floor((this.sliderValues[1] - this.sliderValues[0]) / this.dotsNumber); j++) { dotValue += this.data[i + j][1] }
-          newData.push(Math.floor(dotValue / (this.sliderValues[1] - this.sliderValues[0]) * this.dotsNumber))
+        try {
+          this.$axios
+              .get('http://127.0.0.1:8000/city/get-city-timeseries/', { params: {
+                  'city_id': this.currentCityId,
+                  'start_datetime': this.data[this.sliderValues[0]][0].toString(),
+                  'end_datetime': this.data[this.sliderValues[1]][0].toString(),
+                  'points_number': this.pointsNumber,
+                }
+              })
+              .then(response => {
+                this.graphData = response.data.map(element => element[1]);
+              })
+        } catch(error) {
+          console.log(error.response)
         }
-        this.graphData = newData
-      } else { this.graphData = {} }
+      }
+      this.sliderAvailable = true;
     }
   },
   mounted() {
@@ -105,7 +152,6 @@ export default {
 
   .app__loading-wrapper
     @extend .center
-
 
   .spinner-grow
     margin: 0 2em

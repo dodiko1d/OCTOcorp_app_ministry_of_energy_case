@@ -5,6 +5,8 @@ import Vue from 'vue';
 import App from './App.vue';
 
 import axios from 'axios';
+// window.$qs = require('qs');
+import './assets/js/python';
 
 import 'material-colors';
 import router from './router';
